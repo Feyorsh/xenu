@@ -38,10 +38,11 @@
     },
     "nixpkgs": {
       "locked": {
-        "dirtyRev": "e03bb0684816e4cf695cde15c8ce8cec8b10b571-dirty",
-        "dirtyShortRev": "e03bb0684816-dirty",
-        "lastModified": 1710325027,
-        "narHash": "sha256-pBkWSo9A3W7RY4W8TUojN2A1LkxYDnRczQakLv4QsKg=",
+        "lastModified": 1711834942,
+        "narHash": "sha256-dIjsPYtXOK3gb5xUQAallmn7tUgX4ptZIy1dB3r+7hU=",
+        "ref": "refs/heads/nixvm",
+        "rev": "eaa66d260c0742fb3e96658cf1409416a17b3b22",
+        "revCount": 604969,
         "type": "git",
         "url": "file:///Users/ghuebner/Personal/nixvm"
       },

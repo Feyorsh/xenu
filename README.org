@@ -1,0 +1,73 @@
+* xenu: XNU Emulating Non-Unfree
+[[./Xenu.png]]
+
+The goal of this project is to create a QEMU-like CLI interface for the Apple Virtualization framework.
+The original motivation was to have a nice way to run ~x86_64-linux~ binaries on Apple Silicon for binary exploitation challenges.
+
+** Run it
+This straight up does not work, because it relies on a local branch of nixpkgs; will update soon
+#+begin_src sh
+xcodebuild build -derivedDataPath ./out -scheme xenu
+nix build .#vm
+./xenu/out/Build/Products/Debug/xenu ./result/system/kernel ./result/system/initrd ./nixos.raw
+#+end_src
+
+Then on the guest:
+#+begin_src nix
+let pkgs = import <nixpkgs> {}; in
+pkgs.pkgsCross.gnu64.mkShell {
+  packages = with pkgs; [ ];
+  X86_GLIBC = pkgs.pkgsCross.gnu64.glibc; # dynamic linker for use with patchelf
+  X86_GLIBC_BIN = pkgs.pkgsCross.gnu64.glibc.bin; # ldd
+}
+#+end_src
+
+I'll put up a asciinema when it's more fleshed out
+
+** FAQ
+*Who is this for?*
+- You want to run an aarch64-linux OS and run x86_64-linux binaries
+- You want a hackable QEMU-like interface to Apple Virtualisation
+- You are a +masochist+ Nix Darwin enthusiast
+
+*Do I need to use Nix to take advantage of this?*
+Not necessarily; although this is developed with Nix as the primary usecase, it's meant to provide the same no-frills but feature rich interface that QEMU provides, but with Apple Virtualisation.
+If you don't need Rosetta Linux, I highly recommend using QEMU with ~accel=hvf~.
+
+*Why not QEMU with emulation?*
+It's slow.
+Ideally we could put some benchmarks here...
+
+*I need a GUI.*
+Use UTM.
+Although adding rudimentary GUI support is fairly straightforward, ironing out the kinks is not.
+UTM and Tart are significantly more mature and have larger communities to answer questions.
+
+*I want to use this to do pwn!*
+Unless you are stupid like me, you are better off (for the time being) just using a Docker container or running Debian using UTM (UTM [[https://docs.getutm.app/advanced/rosetta/][instructions for using Rosetta Linux]]).
+Eventually, you should be able to just type ~nix run xenu~ and get NixOS with Rosetta, but that's a while off.
+
+** Future Work
+
+*** TODO Use Nix to build xenu
+
+*** TODO MacOS guests
+
+*** TODO Network support
+
+*** TODO Ctrl-C should be sent to guest, not host process
+Separate process group?
+
+*** TODO Make it easier to specify Debian/Ubuntu
+An experienced Nixer can hack this together pretty quickly, but the goal is to make this a very easy tool to use, without compromising on extensibility.
+
+*** TODO Package binaries on Github
+You currently need to have Xcode installed to build this... yuck!
+The developer of alt-tab-macos [[https://github.com/lwouis/alt-tab-macos/blob/9ff25e7c3a08ade1baeb3ae7b6e873105404a298/docs/Contributing.md?plain=1#L24][sums it up]] pretty well.
+
+*** TODO Automate patchelf workflow/improve guest workflow
+
+** Acknowledgements
+[[https://developer.apple.com/documentation/virtualization/running_linux_in_a_virtual_machine][Apple Virtualization Docs]]
+[[https://github.com/sandydoo/nixos-on-darwin][nixos-on-darwin]] --- Doesn't appear active, but seems similar in spirit, if not scope
+@Surg-Dev for praying for my downfall

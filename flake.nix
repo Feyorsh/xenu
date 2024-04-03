@@ -158,28 +158,29 @@
         fd
         # pkgsCross.gnu64.glibc
       ];
+
+      # virtualisation.vmVariant.virtualisation.fileSystems = pkgs.lib.mkForce { };
     };
     nixosModules.vm = {pkgs, ...}: {
       # no gui
       virtualisation.vmVariant.virtualisation.graphics = false;
       virtualisation.vmVariant.virtualisation.host.pkgs = dpkgs;
-      virtualisation.rosetta.enable = true;
+
+      # rosetta
+      virtualisation.vmVariant.virtualisation.rosetta.enable = true;
+      virtualisation.vmVariant.virtualisation.fileSystems."/run/rosetta" = {
+        device = "rosetta";
+        fsType = "virtiofs";
+      };
       # needed for gdb
       boot.kernel.sysctl = {
         "kernel.yama.ptrace_scope" = 0;
       };
 
-      # boot.tmp.useTmpfs = true;
+      # tmpfs too small for building e.g. glibc, could change if dependencies weren't dynamic
       virtualisation.vmVariant.virtualisation.writableStoreUseTmpfs = false;
 
-      # this BS
-      # just... shoot me... shoot me in the face...
-
       boot.initrd.availableKernelModules = [ "virtiofs" ];
-
-      # virtualisation.vmVariant.virtualisation.writableStore = true;
-      # TODO: supposedly writable overlay doesn't play nice?
-      # virtualisation.vmVariant.virtualisation.useNixStoreImage = true;
     };
     nixosConfigurations.linuxVM = nixpkgs.lib.nixosSystem {
       system = "aarch64-linux";
