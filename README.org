@@ -31,19 +31,23 @@ I'll put up a asciinema when it's more fleshed out
 - You are a +masochist+ Nix Darwin enthusiast
 
 *Do I need to use Nix to take advantage of this?*
+
 Not necessarily; although this is developed with Nix as the primary usecase, it's meant to provide the same no-frills but feature rich interface that QEMU provides, but with Apple Virtualisation.
 If you don't need Rosetta Linux, I highly recommend using QEMU with ~accel=hvf~.
 
 *Why not QEMU with emulation?*
+
 It's slow.
 Ideally we could put some benchmarks here...
 
 *I need a GUI.*
+
 Use UTM.
 Although adding rudimentary GUI support is fairly straightforward, ironing out the kinks is not.
 UTM and Tart are significantly more mature and have larger communities to answer questions.
 
 *I want to use this to do pwn!*
+
 Unless you are stupid like me, you are better off (for the time being) just using a Docker container or running Debian using UTM (UTM [[https://docs.getutm.app/advanced/rosetta/][instructions for using Rosetta Linux]]).
 Eventually, you should be able to just type ~nix run xenu~ and get NixOS with Rosetta, but that's a while off.
 
@@ -68,6 +72,6 @@ The developer of alt-tab-macos [[https://github.com/lwouis/alt-tab-macos/blob/9f
 *** TODO Automate patchelf workflow/improve guest workflow
 
 ** Acknowledgements
-[[https://developer.apple.com/documentation/virtualization/running_linux_in_a_virtual_machine][Apple Virtualization Docs]]
-[[https://github.com/sandydoo/nixos-on-darwin][nixos-on-darwin]] --- Doesn't appear active, but seems similar in spirit, if not scope
-@Surg-Dev for praying for my downfall
+- [[https://developer.apple.com/documentation/virtualization/running_linux_in_a_virtual_machine][Apple Virtualization Docs]]
+- [[https://github.com/sandydoo/nixos-on-darwin][nixos-on-darwin]] --- Doesn't appear active, but seems similar in spirit, if not scope
+- @Surg-Dev for praying for my downfall

@@ -202,6 +202,29 @@
       pwny-vmlinux = self.nixosConfigurations.linuxVM.config.system.build.kernel;
       pwny-initrd = self.nixosConfigurations.linuxVM.config.system.build.initialRamdisk;
       fake-qemu = self.nixosConfigurations.linuxVM.config.system.build.vm;
+      # xenu = let
+      #   # buildSymlinks = dpkgs.runCommand "macvim-build-symlinks" {} ''
+      #   #   mkdir -p $out/bin
+      #   #   ln -s /usr/bin/xcrun /usr/bin/xcodebuild /usr/bin/tiffutil /usr/bin/qlmanage $out/bin
+      #   # '';
+      # in dpkgs.stdenv.mkDerivation {
+      #         name = "xenu";
+      #         src = ./xenu;
+      #         # sandboxProfile = ''
+      #         #   (allow file-read* file-write* process-exec mach-lookup)
+      #         #   ; block homebrew dependencies
+      #         #   (deny file-read* file-write* process-exec mach-lookup (subpath "/usr/local") (with no-log))
+      #         # '';
+      #         meta = with dpkgs.lib; {
+      #           description = "Command line interface to Apple Virtualization";
+      #           homepage = "https://github.com/Feyorsh/xenu";
+      #           license = licenses.gpl3;
+      #           maintainers = [ ];
+      #           platforms = platforms.darwin;
+      #           # required if we do the macvim route
+      #           # hydraPlatforms = [];
+      #         };
+      # };
     };
     devShells.${system}.default = with dpkgs; mkShell {
       packages = [
@@ -213,3 +236,5 @@
     };
   };
 }
+
+Build input file cannot be found: '/Users/ghuebner/Downloads/xenu/LinuxVirtualMachine/LinuxVirtualMachine.entitlements'. Did you forget to declare this file as an output of a script phase or custom build rule which produces it?
