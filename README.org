@@ -5,11 +5,13 @@ The goal of this project is to create a QEMU-like CLI interface for the Apple Vi
 The original motivation was to have a nice way to run ~x86_64-linux~ binaries on Apple Silicon for binary exploitation challenges.
 
 ** Run it
-This straight up does not work, because it relies on a local branch of nixpkgs; will update soon
+You must have Xcode 15+ setup (run ~nix shell nixpkgs#darwin.xcode_15_1~ for instructions on how to install Xcode; I would also recommend creating a gc root for Xcode to prevent it from being gc'd).
+When newer versions of the MacOS SDK get added to nixpkgs you shouldn't need to install Xcode, but for now we will accept this necessary limitation.
 #+begin_src sh
-xcodebuild build -derivedDataPath ./out -scheme xenu
-nix build .#vm
-./xenu/out/Build/Products/Debug/xenu ./result/system/kernel ./result/system/initrd ./nixos.raw
+nix build .#xenu
+nix build .#linux -o linux
+mkfs.ext4 -L nixos nixos.raw; qemu-img create -f raw nixos.raw 5120M
+./result/bin/xenu ./linux/system/kernel ./linux/system/initrd ./nixos.raw
 #+end_src
 
 Then on the guest:
@@ -40,6 +42,11 @@ If you don't need Rosetta Linux, I highly recommend using QEMU with ~accel=hvf~.
 It's slow.
 Ideally we could put some benchmarks here...
 
+*I'm on x86_64-darwin.*
+
+Rosetta only works one-way; to my knowledge, there is no way to run aarch64 binaries on x86 Macs.
+You can virtualize an x86 VM with QEMU very easily using stock nixpkgs.
+
 *I need a GUI.*
 
 Use UTM.
@@ -51,9 +58,30 @@ UTM and Tart are significantly more mature and have larger communities to answer
 Unless you are stupid like me, you are better off (for the time being) just using a Docker container or running Debian using UTM (UTM [[https://docs.getutm.app/advanced/rosetta/][instructions for using Rosetta Linux]]).
 Eventually, you should be able to just type ~nix run xenu~ and get NixOS with Rosetta, but that's a while off.
 
+*How do I fix <mysterious kernel panic>?*
+
+¯\_(ツ)_/¯.
+You can try running a bleeding edge kernel or adding fresh off the press patches like so:
+#+begin_src nix
+customNixosSystem = xenu.nixosConfigurations.linuxVM.extendModules {
+  modules = [
+    ({ config, ... }: {
+      # see https://nixos.wiki/wiki/Linux_kernel for more exotic arrangements
+      boot.kernelPackages = pkgs.linuxPackages_latest;
+	  boot.kernelPatches = [
+		(pkgs.fetchpatch {
+		  url = "...";
+		  hash = "sha256-...";
+		})
+	  ];
+    })
+  ];
+};
+#+end_src
+
 ** Future Work
 
-*** TODO Use Nix to build xenu
+*** DONE Use Nix to build xenu
 
 *** TODO MacOS guests
 
