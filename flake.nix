@@ -5,7 +5,8 @@
   '';
 
   inputs = {
-    nixpkgs.url = "git+file:///Users/ghuebner/Personal/nixvm";
+    # nixpkgs.url = "git+file:///Users/ghuebner/Personal/nixvm";
+    nixpkgs.url = "github:NixOS/nixpkgs/master";
     nixos-generators = {
       url = "github:nix-community/nixos-generators";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -14,34 +15,10 @@
 
   outputs = { self, nixpkgs, nixos-generators }:
     let system = "aarch64-darwin";
-        gdb_overlay = final: prev': {
-          gdb = prev'.gdb.overrideAttrs (prev: {
-            configurePlatforms = [ ];
-
-            configureFlags = with prev.pkgs.lib; [
-              "--program-prefix="
-
-              "--disable-werror"
-              "--target=x86_64-linux"
-              "--enable-64-bit-bfd"
-              "--disable-install-libbfd"
-              "--disable-shared" "--enable-static"
-              "--with-system-zlib"
-              "--with-system-readline"
-
-              "--with-system-gdbinit=/etc/gdb/gdbinit"
-              "--with-system-gdbinit-dir=/etc/gdb/gdbinit.d"
-
-              "--with-auto-load-safe-path=/"
-            ];
-            meta.platforms = prev.meta.platforms ++ [ "aarch64-darwin" ];
-          });
-        };
 
         dpkgs = import nixpkgs {
           inherit system;
           config.allowUnfree = true;
-          # overlays = [ gdb_overlay ];
         };
     in {
     nixosModules.base = {pkgs, ...}: {
@@ -103,22 +80,23 @@
     };
 
     packages.${system} = {
-      pwny-iso = nixos-generators.nixosGenerate {
-        system = "aarch64-linux";
-        format = "iso";
-        modules = [
-          self.nixosModules.base
-          self.nixosModules.vm
-        ];
+      # TODO: use self.nixosConfigurations.linuxVM.config.system.build.{initialRamdisk, kernel} maybe? _NOT_ the same thing as build.vm.<...>
+      linux = self.nixosConfigurations.linuxVM.config.system.build.vm;
+      # xenu = dpkgs.callPackage ./xenu.nix {};
+
+      xenu = dpkgs.callPackage ./rewrite {
+        stdenv = dpkgs.darwin.overrideSDK dpkgs.stdenv {
+          darwinMinVersion = "10.15";
+          darwinSdkVersion = "12.3";
+        };
+        inherit (dpkgs.darwin.apple_sdk.frameworks) Foundation Virtualization;
       };
-      pwny-vmlinux = self.nixosConfigurations.linuxVM.config.system.build.kernel;
-      pwny-initrd = self.nixosConfigurations.linuxVM.config.system.build.initialRamdisk;
-      fake-qemu = self.nixosConfigurations.linuxVM.config.system.build.vm;
-      xenu = dpkgs.callPackage ./xenu.nix {};
     };
     devShells.${system}.default = with dpkgs; mkShell {
       packages = [
-        self.packages.${system}.xenu
+        # self.packages.${system}.xenu
+        # nix-output-monitor
+        swiftpm
         # gdb
       ];
     };
