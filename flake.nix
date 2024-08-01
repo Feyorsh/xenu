@@ -84,13 +84,15 @@
       linux = self.nixosConfigurations.linuxVM.config.system.build.vm;
       # xenu = dpkgs.callPackage ./xenu.nix {};
 
-      xenu = dpkgs.callPackage ./rewrite {
-        stdenv = dpkgs.darwin.overrideSDK dpkgs.stdenv {
-          darwinMinVersion = "10.15";
-          darwinSdkVersion = "12.3";
-        };
-        inherit (dpkgs.darwin.apple_sdk.frameworks) Foundation Virtualization;
-      };
+      # BLOCKER: xenu needs apple sdk >=13, nixpkgs currently only supports 12.3
+      # xenu = dpkgs.callPackage ./rewrite {
+        # stdenv = dpkgs.darwin.overrideSDK dpkgs.stdenv {
+        #   darwinMinVersion = "10.15";
+        #   darwinSdkVersion = "12.3";
+        # };
+        # inherit (dpkgs.darwin.apple_sdk.frameworks) Foundation Virtualization;
+        # inherit (dpkgs.darwin.apple_sdk_12_3.frameworks) Foundation Virtualization;
+      # };
     };
     devShells.${system}.default = with dpkgs; mkShell {
       packages = [

@@ -1,50 +1,71 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, fetchurl
-, swift
-, swiftpm
-, swiftpm2nix
-, swiftPackages
-, Virtualization
-, Foundation
-}:
-let
-  generated = swiftpm2nix.helpers ./generated;
-in
-swiftPackages.stdenv.mkDerivation (finalAttrs: {
-  pname = "xenu";
-  version = "0.0.2";
+# Rosetta landed in virt.fw in SDK version 13, and currently only 12 is in nixpkgs. Use the system version for now
+# { lib
+# , stdenv
+# , fetchFromGitHub
+# , fetchurl
+# , swift
+# , swiftpm
+# , swiftpm2nix
+# , swiftPackages
+# # , Virtualization
+# # , Foundation
+# , darwin
+# }:
+# let
+#   generated = swiftpm2nix.helpers ./generated;
+# in
+# swiftPackages.stdenv.mkDerivation (finalAttrs: {
+#   pname = "xenu";
+#   version = "0.0.2";
 
-  # TODO make this the flake's self input?
-  src = ./.;
+#   # TODO make this the flake's self input?
+#   src = ./.;
 
-  nativeBuildInputs = [ swift swiftpm ];
+#   nativeBuildInputs = [ swift swiftpm ];
 
-  # TODO this needs the newer version of the macOS sdk that landed in nixpkgs a few months ago
-  buildInputs = [ Foundation Virtualization ];
+#   # __propagatedImpureHostDeps = [
+#   #   # "/System/Library/Frameworks"
+#   #   "/System/Library/Frameworks/Virtualization.framework/Versions/Current/"
+#   #   "/System/Library/Frameworks/Virtualization.framework"
+#   #   "/System/Library/Frameworks/Foundation.framework"
+#   # ];
 
-  configurePhase = generated.configure;
+#   # NIX_SWIFTFLAGS_COMPILE = "-Fsystem /System/Library/Frameworks";
 
-  # installPhase = ''
-  #   runHook preInstall
-  #   install -Dm755 .build/${stdenv.hostPlatform.darwinArch}-apple-macosx/release/dockutil -t $out/bin
-  #   runHook postInstall
-  # '';
-  installPhase = ''
-    runHook preInstall
+#   # env = {
+#   # SDK_PATH = "/Syst"
+#   # };
 
-    mkdir -p $out/bin
-    cp $swiftpmBinPath/xenu $out/bin/
+#   preBuild = ''
+#     ${darwin.xcode_15_1}/Contents/Developer/usr/bin/xcodebuild -sdk -version
+#     env
+#   '';
 
-    runHook postInstall
-  '';
+#   buildInputs = [
+#     darwin.xcode_15_1
+#     Foundation
+#     Virtualization
+#   ];
+#   # buildInputs = with darwin.apple_sdk_12_3.frameworks; [
+#   #   Foundation
+#   #   Virtualization
+#   #   AppKit
+#   #   Cocoa
+#   # ];
 
-  meta = with lib; {
-    description = "Command line interface to Apple Virtualization";
-    homepage = "https://github.com/Feyorsh/xenu";
-    license = licenses.gpl3;
-    mainProgram = "xenu";
-    platforms = platforms.darwin;
-  };
-})
+#   configurePhase = generated.configure;
+
+#   installPhase = ''
+#     runHook preInstall
+#     install -Dm755 .build/${swiftPackages.stdenv.hostPlatform.darwinArch}-apple-macosx/release/xenu -t $out/bin
+#     runHook postInstall
+#   '';
+
+#   meta = with lib; {
+#     description = "Command line interface to Apple Virtualization";
+#     homepage = "https://github.com/Feyorsh/xenu";
+#     license = licenses.gpl3;
+#     mainProgram = "xenu";
+#     platforms = platforms.darwin;
+#   };
+# })
