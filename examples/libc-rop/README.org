@@ -1,0 +1,21 @@
+#+TITLE: Libc ROP
+
+[[https://ctf.sigpwny.com/challenges#Vault/Libc%20ROP-613][Libc ROP]] from SIGPwny's [[https://ctf.sigpwny.com][Pwny CTF]].
+
+* Description
+Can you pwn this program and read flag.txt? This binary has full protections 😳
+
+#+begin_src shell :results none :eval no
+nc chal.sigpwny.com 1369
+#+end_src
+
+** Hints
+- Can you leak a libc address?
+- Leak the libc address, compute the base of libc, add that base to your gadget offsets into libc
+
+** Files
+- [[file:challenge][challenge]]
+- [[file:libc.so.6][libc.so.6]]
+- [[file:challenge.c][challenge.c]]
+
+* Setup
