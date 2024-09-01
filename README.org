@@ -103,3 +103,26 @@ The developer of alt-tab-macos [[https://github.com/lwouis/alt-tab-macos/blob/9f
 - [[https://developer.apple.com/documentation/virtualization/running_linux_in_a_virtual_machine][Apple Virtualization Docs]]
 - [[https://github.com/sandydoo/nixos-on-darwin][nixos-on-darwin]] --- Doesn't appear active, but seems similar in spirit, if not scope
 - @Surg-Dev for praying for my downfall
+
+* Thoughts from my rewrite
+Xenu takes heavy inspiration from UTM, which is an absolutely fantastic project (really! you should go check them out!)
+
+UTM has even started to polish the CLI experience with utmctl, which has great commands for e.g. ~exec~-ing stuff in VMs. (mine is meant to be a little more in-line with QEMU, and offer better debugger support out of the box).
+
+The main reasons for building Xenu are thus:
+1. Make a super hackable, extensible, and thin wrapper over the virtualization capabilities Apple already provides,
+2. Xenu should always be super easy to build, and must (once SDK 13 lands in nixpkgs) build in the Nix sandbox. I was even reluctant to include Swift ArgumentParser because it meant brining in SwiftPM, but it's probably the easiest "third" library library to install.
+3. Although Xenu is meant to be qemu like, it isn't qemu, so we can drop a bunch of stuff to support qemu.
+4. Seriously, the only dependency you need is Apple's own ArgumentParser library. That's it!
+5. CLI first. I probably won't add a GUI.
+
+   Another similar project
+   https://github.com/crc-org/vfkit
+   OrbStack (unfree/costs money)
+   Colima (almost perfect, but lacks some customizations and is larger in scope, being meant for containers)
+
+** Xcode
+So this is not /ideal/, but I managed to get a pure version of Xenu building by using the unwrapped Swift compiler from nixpkgs and writing my own ~xcrun~ shim to make Swift aware of all the Xcode frameworks and headers and so on.
+Hopefully it's a very simple transition from this to SDK 13 vendored from nixpkgs (which I only now realize is the same damn thing that Xcode has! "S"oftware "D"evelopment "K"it, not just distributable libraries!)
+
+* TODO add unixbench between NixOS x86_64-linux emulated with QEMU and aarch64 virtualized with avf

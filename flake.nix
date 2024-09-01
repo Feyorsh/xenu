@@ -54,7 +54,7 @@
       virtualisation.vmVariant.virtualisation.graphics = false;
       virtualisation.vmVariant.virtualisation.host.pkgs = dpkgs;
 
-      virtualisation.vmVariant.virtualisation.rosetta.enable = true;
+      # virtualisation.vmVariant.virtualisation.rosetta.enable = true;
 
       # needed for gdb
       boot.kernel.sysctl = {
@@ -118,6 +118,14 @@
       ];
     };
 
+    nixosConfigurations.x86linuxVM = lib.nixosSystem {
+      system = "x86_64-linux";
+      modules = [
+        self.nixosModules.base
+        self.nixosModules.vm
+      ];
+    };
+
     apps.${system} = {
       genStoreImg = {
         type = "app";
@@ -137,23 +145,13 @@
     packages.${system} = {
       # TODO: use self.nixosConfigurations.linuxVM.config.system.build.{initialRamdisk, kernel} maybe? _NOT_ the same thing as build.vm.<...>
       linux = self.nixosConfigurations.linuxVM.config.system.build.vm;
-      # xenu = dpkgs.callPackage ./xenu.nix {};
+      x86linux = self.nixosConfigurations.x86linuxVM.config.system.build.vm;
 
-      # BLOCKER: xenu needs apple sdk >=13, nixpkgs currently only supports 12.3
-      # xenu = dpkgs.callPackage ./rewrite {
-        # stdenv = dpkgs.darwin.overrideSDK dpkgs.stdenv {
-        #   darwinMinVersion = "10.15";
-        #   darwinSdkVersion = "12.3";
-        # };
-        # inherit (dpkgs.darwin.apple_sdk.frameworks) Foundation Virtualization;
-        # inherit (dpkgs.darwin.apple_sdk_12_3.frameworks) Foundation Virtualization;
-      # };
+      xenu = dpkgs.callPackage ./rewrite { xcode = dpkgs.darwin.xcode_15_1; };
     };
     devShells.${system}.default = with dpkgs; mkShell {
       packages = [
         # self.packages.${system}.xenu
-        # nix-output-monitor
-        swiftpm
         # gdb
       ];
     };

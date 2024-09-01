@@ -1,71 +1,77 @@
-# Rosetta landed in virt.fw in SDK version 13, and currently only 12 is in nixpkgs. Use the system version for now
-# { lib
-# , stdenv
-# , fetchFromGitHub
-# , fetchurl
-# , swift
-# , swiftpm
-# , swiftpm2nix
-# , swiftPackages
-# # , Virtualization
-# # , Foundation
-# , darwin
-# }:
-# let
-#   generated = swiftpm2nix.helpers ./generated;
-# in
-# swiftPackages.stdenv.mkDerivation (finalAttrs: {
-#   pname = "xenu";
-#   version = "0.0.2";
+{ lib
+, stdenv
+, swiftpm
+, swiftpm2nix
+, xcode
+, sigtool
+, runCommandLocal
+, makeWrapper
+, writeShellScriptBin
+}:
+let
+  generated = swiftpm2nix.helpers ./generated;
 
-#   # TODO make this the flake's self input?
-#   src = ./.;
+  configuration = "debug";
 
-#   nativeBuildInputs = [ swift swiftpm ];
+  # this is less brittle than it seems because swiftpm is
+  # open source and all `xcrun` invocations can be audited
+  xcrun' = writeShellScriptBin "xcrun"
+    ''
+      if [[ "$3" == "--show-sdk-platform-path" ]]; then
+        echo ${xcode}/Contents/Developer/Platforms/MacOSX.platform
+      elif [[ "$3" == "--show-sdk-path" ]]; then
+        echo ${xcode}/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.2.sdk
+      elif [[ "$1" == "--find" ]]; then
+        echo ${xcode}/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/$2
+      else
+        exit 1
+      fi
+    '';
 
-#   # __propagatedImpureHostDeps = [
-#   #   # "/System/Library/Frameworks"
-#   #   "/System/Library/Frameworks/Virtualization.framework/Versions/Current/"
-#   #   "/System/Library/Frameworks/Virtualization.framework"
-#   #   "/System/Library/Frameworks/Foundation.framework"
-#   # ];
+  swift' = let exe = "swift-build"; in lib.getExe' (runCommandLocal exe { nativeBuildInputs = [ makeWrapper ]; }
+    ''
+      mkdir -p $out/bin
+      makeWrapper ${swiftpm}/bin/.swift-package-wrapped $out/bin/${exe} \
+        --argv0 ${exe} \
+        --add-flags "-c ${configuration}" \
+        --add-flags "-j $((enableParallelBuilding?NIX_BUILD_CORES:1))" \
+        --prefix PATH : ${xcrun'}/bin
+    '') exe;
+in
 
-#   # NIX_SWIFTFLAGS_COMPILE = "-Fsystem /System/Library/Frameworks";
+stdenv.mkDerivation rec {
+  pname = "xenu";
+  version = "0.0.3";
 
-#   # env = {
-#   # SDK_PATH = "/Syst"
-#   # };
+  src = ./.;
 
-#   preBuild = ''
-#     ${darwin.xcode_15_1}/Contents/Developer/usr/bin/xcodebuild -sdk -version
-#     env
-#   '';
+  nativeBuildInputs = [ sigtool ];
 
-#   buildInputs = [
-#     darwin.xcode_15_1
-#     Foundation
-#     Virtualization
-#   ];
-#   # buildInputs = with darwin.apple_sdk_12_3.frameworks; [
-#   #   Foundation
-#   #   Virtualization
-#   #   AppKit
-#   #   Cocoa
-#   # ];
+  configurePhase = generated.configure;
 
-#   configurePhase = generated.configure;
+  buildPhase = ''
+    runHook preBuild
+    ${swift'}
+    runHook postBuild
+  '';
 
-#   installPhase = ''
-#     runHook preInstall
-#     install -Dm755 .build/${swiftPackages.stdenv.hostPlatform.darwinArch}-apple-macosx/release/xenu -t $out/bin
-#     runHook postInstall
-#   '';
+  installPhase = ''
+    runHook preInstall
+    binPath="$(${swift'} --show-bin-path)"
+    mkdir -p $out/bin
+    cp $binPath/xenu $out/bin/xenu
+    codesign --force --entitlements ./Resources/Xenu.entitlements --sign - $out/bin/xenu
+    runHook postInstall
+  '';
 
-#   meta = with lib; {
-#     description = "Command line interface to Apple Virtualization";
-#     homepage = "https://github.com/Feyorsh/xenu";
-#     license = licenses.gpl3;
-#     mainProgram = "xenu";
-#     platforms = platforms.darwin;
-#   };
-# })
+  # necessary to keep entitlements
+  dontStrip = true;
+
+  meta = with lib; {
+    description = "Command line interface to Apple Virtualization";
+    homepage = "https://github.com/Feyorsh/xenu";
+    license = licenses.gpl3;
+    mainProgram = "xenu";
+    platforms = platforms.darwin;
+  };
+}
