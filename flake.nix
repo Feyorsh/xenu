@@ -16,9 +16,16 @@
     let system = "aarch64-darwin";
         inherit (nixpkgs) lib;
 
-        dpkgs = import nixpkgs {
+        pkgs = import nixpkgs {
           inherit system;
           config.allowUnfree = true;
+        };
+
+        pkgsCross = import nixpkgs {
+          inherit system;
+          config.allowUnfree = true;
+          config.allowUnsupportedSystem = true; # for gdb
+          crossSystem = "x86_64-linux";
         };
     in {
     nixosModules.base = {pkgs, ...}: {
@@ -52,7 +59,7 @@
     };
     nixosModules.vm = {pkgs, config, ...}: {
       virtualisation.vmVariant.virtualisation.graphics = false;
-      virtualisation.vmVariant.virtualisation.host.pkgs = dpkgs;
+      virtualisation.vmVariant.virtualisation.host.pkgs = pkgs;
 
       # virtualisation.vmVariant.virtualisation.rosetta.enable = true;
 
@@ -118,42 +125,39 @@
       ];
     };
 
-    nixosConfigurations.x86linuxVM = lib.nixosSystem {
-      system = "x86_64-linux";
-      modules = [
-        self.nixosModules.base
-        self.nixosModules.vm
-      ];
-    };
-
     apps.${system} = {
       genStoreImg = {
         type = "app";
-        program = (dpkgs.writeShellScript "createNixStoreImage" ''
-          ${dpkgs.qemu-utils}/bin/qemu-img create -f raw nixos.raw 5120M
-          ${dpkgs.e2fsprogs}/bin/mkfs.ext4 -L nixos nixos.raw
+        program = (pkgs.writeShellScript "createNixStoreImage" ''
+          ${pkgs.qemu-utils}/bin/qemu-img create -f raw nixos.raw 5120M
+          ${pkgs.e2fsprogs}/bin/mkfs.ext4 -L nixos nixos.raw
         '').outPath;
       };
-      kernelParams = {
+
+      vm = {
         type = "app";
-        program = (dpkgs.writeShellScript "qemuAppend" ''
-          echo ${lib.findFirst (lib.hasPrefix "-append") null self.nixosConfigurations.linuxVM.config.virtualisation.vmVariant.virtualisation.qemu.options}
-        '').outPath;
+        program = let
+          linux = self.nixosConfigurations.linuxVM.config.system.build.vm;
+          xenu = self.packages.${system}.xenu;
+          kernel_cmdline = lib.removePrefix "-append " (lib.findFirst (lib.hasPrefix "-append ") null self.nixosConfigurations.linuxVM.config.virtualisation.vmVariant.virtualisation.qemu.options);
+        in (pkgs.writeShellScript "test"
+          ''
+            ${xenu}/bin/xenu --kernel ${linux}/system/kernel --initrd ${linux}/system/initrd --store-image ./nixos.raw --append ${kernel_cmdline}
+          '').outPath;
       };
     };
 
     packages.${system} = {
       # TODO: use self.nixosConfigurations.linuxVM.config.system.build.{initialRamdisk, kernel} maybe? _NOT_ the same thing as build.vm.<...>
       linux = self.nixosConfigurations.linuxVM.config.system.build.vm;
-      x86linux = self.nixosConfigurations.x86linuxVM.config.system.build.vm;
 
-      xenu = dpkgs.callPackage ./rewrite { xcode = dpkgs.darwin.xcode_15_1; };
+      xenu = pkgs.darwin.callPackage ./rewrite { xcode = pkgs.darwin.xcode_15_1; };
     };
-    devShells.${system}.default = with dpkgs; mkShell {
-      packages = [
-        # self.packages.${system}.xenu
-        # gdb
-      ];
+    devShells.${system}.default = pkgsCross.callPackage ({ mkShell, gdb, glibc, patchelf }: mkShell {
+      # these tools run on the build platform, but are configured to target the host platform
+      nativeBuildInputs = [ gdb patchelf ];
+      # libraries needed for the host platform
+      buildInputs = [ glibc ];
+    }) {};
     };
-  };
 }

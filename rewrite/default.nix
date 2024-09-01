@@ -47,6 +47,8 @@ stdenv.mkDerivation rec {
 
   nativeBuildInputs = [ sigtool ];
 
+  strictDeps = true;
+
   configurePhase = generated.configure;
 
   buildPhase = ''
