@@ -7,11 +7,12 @@
 , runCommandLocal
 , makeWrapper
 , writeShellScriptBin
+, debug ? false
 }:
 let
   generated = swiftpm2nix.helpers ./generated;
 
-  configuration = "debug";
+  configuration = if debug then "debug" else "release";
 
   # this is less brittle than it seems because swiftpm is
   # open source and all `xcrun` invocations can be audited
@@ -28,6 +29,9 @@ let
       fi
     '';
 
+  # swiftpm's `--disable-dependency-cache`, `--manifest-cache`, and `--disable-build-manifest-caching` don't really do much
+  # because there's user-level caching you can't disable (swiftpm will disable it automatically and warn you).
+  # setting HOME is necessary because we don't have `llvm-module-cache.patch` from nixpkgs's version of swiftc
   swift' = let exe = "swift-build"; in lib.getExe' (runCommandLocal exe { nativeBuildInputs = [ makeWrapper ]; }
     ''
       mkdir -p $out/bin
@@ -35,6 +39,7 @@ let
         --argv0 ${exe} \
         --add-flags "-c ${configuration}" \
         --add-flags "-j $((enableParallelBuilding?NIX_BUILD_CORES:1))" \
+        --set HOME "$(mktemp -d)" \
         --prefix PATH : ${xcrun'}/bin
     '') exe;
 in
