@@ -1,5 +1,5 @@
 * xenu: XNU Emulating Non-Unfree
-[[./Xenu.png]]
+[[./assets/xenu.png]]
 
 The goal of this project is to create a QEMU-like CLI interface for the Apple Virtualization framework.
 The original motivation was to have a nice way to run ~x86_64-linux~ binaries on Apple Silicon for binary exploitation challenges.

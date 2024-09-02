@@ -61,7 +61,7 @@
       virtualisation.vmVariant.virtualisation.graphics = false;
       virtualisation.vmVariant.virtualisation.host.pkgs = pkgs;
 
-      # virtualisation.vmVariant.virtualisation.rosetta.enable = true;
+      virtualisation.vmVariant.virtualisation.rosetta.enable = true;
 
       # needed for gdb
       boot.kernel.sysctl = {
@@ -151,11 +151,11 @@
       # TODO: use self.nixosConfigurations.linuxVM.config.system.build.{initialRamdisk, kernel} maybe? _NOT_ the same thing as build.vm.<...>
       linux = self.nixosConfigurations.linuxVM.config.system.build.vm;
 
-      xenu = pkgs.darwin.callPackage ./rewrite { xcode = pkgs.darwin.xcode_15_1; };
+      xenu = pkgs.darwin.callPackage ./xenu { xcode = pkgs.darwin.xcode_15_1; };
     };
-    devShells.${system}.default = pkgsCross.callPackage ({ mkShell, gdb, glibc, patchelf }: mkShell {
+    devShells.${system}.default = pkgsCross.callPackage ({ mkShell, gdb, glibc, patchelf, autoPatchelfHook }: mkShell {
       # these tools run on the build platform, but are configured to target the host platform
-      nativeBuildInputs = [ gdb patchelf ];
+      nativeBuildInputs = [ gdb patchelf autoPatchelfHook ];
       # libraries needed for the host platform
       buildInputs = [ glibc ];
     }) {};
