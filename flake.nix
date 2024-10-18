@@ -126,38 +126,54 @@
     };
 
     apps.${system} = {
-      genStoreImg = {
-        type = "app";
-        program = (pkgs.writeShellScript "createNixStoreImage" ''
-          ${pkgs.qemu-utils}/bin/qemu-img create -f raw nixos.raw 5120M
-          ${pkgs.e2fsprogs}/bin/mkfs.ext4 -L nixos nixos.raw
-        '').outPath;
-      };
-
       vm = {
         type = "app";
-        program = let
-          linux = self.nixosConfigurations.linuxVM.config.system.build.vm;
-          xenu = self.packages.${system}.xenu;
-          kernel_cmdline = lib.removePrefix "-append " (lib.findFirst (lib.hasPrefix "-append ") null self.nixosConfigurations.linuxVM.config.virtualisation.vmVariant.virtualisation.qemu.options);
-        in (pkgs.writeShellScript "test"
-          ''
-            ${xenu}/bin/xenu --kernel ${linux}/system/kernel --initrd ${linux}/system/initrd --store-image ./nixos.raw --append ${kernel_cmdline}
-          '').outPath;
+        program = lib.getExe self.packages.${system}.vm;
       };
     };
 
-    packages.${system} = {
+    packages.${system} = rec {
       # TODO: use self.nixosConfigurations.linuxVM.config.system.build.{initialRamdisk, kernel} maybe? _NOT_ the same thing as build.vm.<...>
       linux = self.nixosConfigurations.linuxVM.config.system.build.vm;
 
       xenu = pkgs.darwin.callPackage ./xenu { xcode = pkgs.darwin.xcode_15_1; };
+
+      vm = let
+        script = { xenu, kernel, initrd, cmdline, storeImgSize }: pkgs.writeShellScriptBin "vm" ''
+          NIX_STORE_IMAGE=$(readlink -f "''${NIX_STORE_IMAGE:-./nixos.raw}") || test -z "$NIX_STORE_IMAGE"
+          if test -n "$NIX_STORE_IMAGE" && ! test -e "$NIX_STORE_IMAGE"; then
+              ${pkgs.qemu-utils}/bin/qemu-img create -f raw nixos.raw "${toString storeImgSize}M"
+              ${pkgs.e2fsprogs}/bin/mkfs.ext4 -L nixos nixos.raw
+          fi
+
+          ${xenu}/bin/xenu --kernel ${kernel} --initrd ${initrd} --store-image ./nixos.raw --append ${cmdline}
+        '';
+        linux = self.nixosConfigurations.linuxVM.config.system.build.vm;
+        kernel_cmdline = lib.removePrefix "-append " (lib.findFirst (lib.hasPrefix "-append ") null self.nixosConfigurations.linuxVM.config.virtualisation.vmVariant.virtualisation.qemu.options);
+      in
+        lib.makeOverridable script {
+          xenu = xenu;
+          kernel = "${linux}/system/kernel";
+          initrd = "${linux}/system/initrd";
+          cmdline = kernel_cmdline;
+          storeImgSize = 5120;
+        };
     };
-    devShells.${system}.default = pkgsCross.callPackage ({ mkShell, gdb, glibc, patchelf, autoPatchelfHook }: mkShell {
-      # these tools run on the build platform, but are configured to target the host platform
-      nativeBuildInputs = [ gdb patchelf autoPatchelfHook ];
-      # libraries needed for the host platform
-      buildInputs = [ glibc ];
-    }) {};
+    devShells.${system} = rec {
+      x86Shell = pkgsCross.callPackage ({ mkShell, gdb, glibc, patchelf, autoPatchelfHook }: mkShell {
+        # these tools run on the build platform, but are configured to target the host platform
+        nativeBuildInputs = [ gdb patchelf autoPatchelfHook ];
+        # libraries needed for the host platform
+        buildInputs = [ glibc ];
+      }) {};
+      default = x86Shell;
+      vcs = with pkgs; mkShellNoCC {
+        packages = [
+          gh
+          darwin.sigtool
+          self.packages.${system}.xenu
+        ];
+      };
+    };
     };
 }
