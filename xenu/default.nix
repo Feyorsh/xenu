@@ -1,73 +1,51 @@
 { lib
 , stdenv
+, fetchFromGitHub
+, fetchurl
+, sigtool
+, swift
 , swiftpm
 , swiftpm2nix
-, xcode
-, sigtool
-, runCommandLocal
-, makeWrapper
-, writeShellScriptBin
-, debug ? false
+, swiftPackages
+, apple-sdk_13
+, darwinMinVersionHook
 }:
 let
   generated = swiftpm2nix.helpers ./generated;
-
-  configuration = if debug then "debug" else "release";
-
-  # this is less brittle than it seems because swiftpm is
-  # open source and all `xcrun` invocations can be audited
-  xcrun' = writeShellScriptBin "xcrun"
-    ''
-      if [[ "$3" == "--show-sdk-platform-path" ]]; then
-        echo ${xcode}/Contents/Developer/Platforms/MacOSX.platform
-      elif [[ "$3" == "--show-sdk-path" ]]; then
-        echo ${xcode}/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.2.sdk
-      elif [[ "$1" == "--find" ]]; then
-        echo ${xcode}/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/$2
-      else
-        exit 1
-      fi
-    '';
-
-  # swiftpm's `--disable-dependency-cache`, `--manifest-cache`, and `--disable-build-manifest-caching` don't really do much
-  # because there's user-level caching you can't disable (swiftpm will disable it automatically and warn you).
-  # setting HOME is necessary because we don't have `llvm-module-cache.patch` from nixpkgs's version of swiftc
-  swift' = let exe = "swift-build"; in lib.getExe' (runCommandLocal exe { nativeBuildInputs = [ makeWrapper ]; }
-    ''
-      mkdir -p $out/bin
-      makeWrapper ${swiftpm}/bin/.swift-package-wrapped $out/bin/${exe} \
-        --argv0 ${exe} \
-        --add-flags "-c ${configuration}" \
-        --add-flags "-j $((enableParallelBuilding?NIX_BUILD_CORES:1))" \
-        --set HOME "$(mktemp -d)" \
-        --prefix PATH : ${xcrun'}/bin
-    '') exe;
 in
-
-stdenv.mkDerivation rec {
+swiftPackages.stdenv.mkDerivation (finalAttrs: {
   pname = "xenu";
-  version = "0.0.3";
+  version = "0.0.4";
 
   src = ./.;
 
-  nativeBuildInputs = [ sigtool ];
-
   strictDeps = true;
+
+  nativeBuildInputs = [
+    swift
+    swiftpm
+    sigtool
+  ];
+
+  buildInputs = [
+    apple-sdk_13
+    (darwinMinVersionHook "13.0")
+  ];
 
   configurePhase = generated.configure;
 
-  buildPhase = ''
-    runHook preBuild
-    ${swift'}
-    runHook postBuild
-  '';
+  swiftpmBuildConfig = "debug";
+  swiftpmFlags = [
+    "--disable-package-manifest-caching"
+  ];
 
   installPhase = ''
     runHook preInstall
-    binPath="$(${swift'} --show-bin-path)"
-    mkdir -p $out/bin
-    cp $binPath/xenu $out/bin/xenu
+
+    binPath="$(swiftpmBinPath)"
+    install -Dm755 "$(swiftpmBinPath)/xenu" -t $out/bin
     codesign --force --entitlements ./Resources/Xenu.entitlements --sign - $out/bin/xenu
+
     runHook postInstall
   '';
 
@@ -81,4 +59,4 @@ stdenv.mkDerivation rec {
     mainProgram = "xenu";
     platforms = platforms.darwin;
   };
-}
+})

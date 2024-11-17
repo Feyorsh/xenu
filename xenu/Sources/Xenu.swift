@@ -198,11 +198,7 @@ struct XenuOptions: ParsableArguments {
             }
 
             let dev = VZMacGraphicsDeviceConfiguration()
-            let config = if let screen = getScreenWithMouse() {
-                VZMacGraphicsDisplayConfiguration(for: screen, sizeInPoints: NSMakeSize(1080, 900))
-            } else {
-                VZMacGraphicsDisplayConfiguration(widthInPixels: 1080, heightInPixels: 900, pixelsPerInch: 5)
-            }
+            let config = VZMacGraphicsDisplayConfiguration(widthInPixels: 1080, heightInPixels: 900, pixelsPerInch: 5)
             dev.displays = [ config ]
             return dev
         } else {

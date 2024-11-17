@@ -6,6 +6,7 @@ import PackageDescription
 let package = Package(
     name: "xenu",
     platforms: [
+      // minimum version for Virt.fw is v11, but so many things require v13 that it would be painful to support it
       .macOS(.v13)
     ],
     dependencies: [

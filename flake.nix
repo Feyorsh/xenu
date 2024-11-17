@@ -136,7 +136,7 @@
       # TODO: use self.nixosConfigurations.linuxVM.config.system.build.{initialRamdisk, kernel} maybe? _NOT_ the same thing as build.vm.<...>
       linux = self.nixosConfigurations.linuxVM.config.system.build.vm;
 
-      xenu = pkgs.darwin.callPackage ./xenu { xcode = pkgs.darwin.xcode_15_1; };
+      xenu = pkgs.callPackage ./xenu { inherit (pkgs.darwin) sigtool; };
 
       vm = let
         script = { xenu, kernel, initrd, cmdline, storeImgSize }: pkgs.writeShellScriptBin "vm" ''
