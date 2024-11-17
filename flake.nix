@@ -5,7 +5,7 @@
   '';
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/master";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     nixos-generators = {
       url = "github:nix-community/nixos-generators";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -167,11 +167,11 @@
         buildInputs = [ glibc ];
       }) {};
       default = x86Shell;
-      vcs = with pkgs; mkShellNoCC {
+      dev = with pkgs; mkShell {
         packages = [
+          swift swiftpm
           gh
           darwin.sigtool
-          self.packages.${system}.xenu
         ];
       };
     };
