@@ -49,12 +49,16 @@
       nix.channel.enable = true;
       nix.settings.experimental-features = "nix-command flakes";
 
+      programs.bash.shellInit = "cd /tmp/shared";
+      security.pam.mount.logoutTerm = true;
+
       environment.systemPackages = with pkgs; [
         vim
         git
         file
         patchelf
         fd
+        qemu-user
       ];
     };
     nixosModules.vm = {pkgs, config, ...}: {
